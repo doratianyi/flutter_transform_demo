@@ -4,7 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
 void main() {
-  final rootBlock = generateRandomBlocks(6, 4);
+  // final rootBlock = generateRandomBlocks(6, 4);
+  final rootBlock = generateRandomBlocks(3, 3);
 
   runApp(
     App(
@@ -153,6 +154,23 @@ class _AppState extends State<App> with SingleTickerProviderStateMixin {
   }
 }
 
+/// Helper object that keeps track of the current transform.
+class TransformStack {
+  final List<Matrix4> _stack = [];
+
+  Matrix4 _currentTransform = Matrix4.identity();
+  Matrix4 get currentTransform => _currentTransform;
+
+  void push(Matrix4 transform) {
+    _stack.add(_currentTransform);
+    _currentTransform = _currentTransform * transform;
+  }
+
+  void pop() {
+    _currentTransform = _stack.removeLast();
+  }
+}
+
 class BlockPainter extends CustomPainter {
   final MovingBlock rootBlock;
 
@@ -160,10 +178,16 @@ class BlockPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    paintBlock(canvas, rootBlock, size);
+    final stack = TransformStack();
+    paintBlock(canvas, rootBlock, size, stack);
   }
 
-  void paintBlock(Canvas canvas, MovingBlock block, Size size) {
+  void paintBlock(
+    Canvas canvas,
+    MovingBlock block,
+    Size size,
+    TransformStack stack,
+  ) {
     canvas.drawRect(
       block.offset & block.size,
       Paint()
@@ -171,12 +195,34 @@ class BlockPainter extends CustomPainter {
         ..style = block.isHit.value ? PaintingStyle.fill : PaintingStyle.stroke,
     );
 
+    final globalLocation = MatrixUtils.transformPoint(
+      stack.currentTransform,
+      block.offset,
+    );
+    paintText(
+      canvas,
+      block.offset,
+      '(${globalLocation.dx.toStringAsFixed(2)}, ${globalLocation.dy.toStringAsFixed(2)})',
+      block.color,
+    );
+
     canvas.save();
     canvas.transform(block.currentTransform.value.storage);
+    stack.push(block.currentTransform.value);
     for (final child in block.children) {
-      paintBlock(canvas, child, size);
+      paintBlock(canvas, child, size, stack);
     }
     canvas.restore();
+    stack.pop();
+  }
+
+  void paintText(Canvas canvas, Offset offset, String text, Color color) {
+    final textPainter = TextPainter(
+      text: TextSpan(text: text, style: TextStyle(color: color)),
+      textDirection: TextDirection.ltr,
+    );
+    textPainter.layout();
+    textPainter.paint(canvas, offset);
   }
 
   @override
