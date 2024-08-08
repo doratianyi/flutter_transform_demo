@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
 void main() {
-  // final rootBlock = generateRandomBlocks(6, 4);
-  final rootBlock = generateRandomBlocks(3, 3);
+  final rootBlock = generateRandomBlocks(6, 4);
+  // final rootBlock = generateRandomBlocks(3, 3);
 
   runApp(
     App(
@@ -195,16 +195,19 @@ class BlockPainter extends CustomPainter {
         ..style = block.isHit.value ? PaintingStyle.fill : PaintingStyle.stroke,
     );
 
-    final globalLocation = MatrixUtils.transformPoint(
-      stack.currentTransform,
-      block.offset,
-    );
-    paintText(
-      canvas,
-      block.offset,
-      '(${globalLocation.dx.toStringAsFixed(2)}, ${globalLocation.dy.toStringAsFixed(2)})',
-      block.color,
-    );
+    if (block.isHit.value) {
+      final globalLocation = MatrixUtils.transformPoint(
+        stack.currentTransform,
+        block.offset,
+      );
+      paintText(
+        canvas,
+        block.offset,
+        '(${globalLocation.dx.toStringAsFixed(2)}, ${globalLocation.dy.toStringAsFixed(2)})',
+        // block.color,
+        Colors.white,
+      );
+    }
 
     canvas.save();
     canvas.transform(block.currentTransform.value.storage);
